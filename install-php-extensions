@@ -3691,7 +3691,7 @@ installRemoteModule() {
 						else
 							installRemoteModule_delm2=y
 						fi
-						mvn -pl zookeeper-jute compile
+						mvn -pl zookeeper-jute clean compile
 						cd - >/dev/null
 						cd -- "$installRemoteModule_src/zookeeper-client/zookeeper-client-c"
 						autoreconf -if

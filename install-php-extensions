@@ -3250,6 +3250,9 @@ installRemoteModule() {
 			fi
 			;;
 		sourceguardian)
+			if test $PHP_MAJMIN_VERSION -lt 704 && [ "$(uname -m)" = "aarch64" ]; then
+				return 0
+			fi
 			installSourceGuardian
 			installRemoteModule_manuallyInstalled=1
 			;;

@@ -716,10 +716,17 @@ buildRequiredPackageLists() {
 				;;
 			ddtrace@alpine)
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile curl-dev"
+				if test $DISTRO_MAJMIN_VERSION -ge 317; then
+					# Alpine 3.17 is the minimum version that comes with cargo 1.64.0+
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile cargo"
+				fi
 				;;
 			ddtrace@debian)
-				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent curl"
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libcurl4-openssl-dev"
+				if test $DISTRO_MAJMIN_VERSION -ge 1200; then
+					# Debian bookworm is the minimum version that comes with cargo 1.64.0+
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile cargo"
+				fi
 				;;
 			dba@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent db"
@@ -732,8 +739,18 @@ buildRequiredPackageLists() {
 				fi
 				;;
 			decimal@debian)
-				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent ^libmpdec[0-9]*$"
-				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libmpdec-dev"
+				if test $DISTRO_MAJMIN_VERSION -lt 1200; then
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent ^libmpdec[0-9]*$"
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libmpdec-dev"
+				fi
+				;;
+			ecma_intl@alpine)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent icu-libs $buildRequiredPackageLists_icuPersistent"
+				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile icu-dev libidn-dev"
+				;;
+			ecma_intl@debian)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent ^libicu[0-9]+$"
+				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libicu-dev"
 				;;
 			enchant@alpine)
 				if test $DISTRO_MAJMIN_VERSION -ge 312; then
@@ -1015,6 +1032,9 @@ buildRequiredPackageLists() {
 			memcached@debian)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libmemcachedutil2"
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libmemcached-dev zlib1g-dev"
+				if test $DISTRO_MAJMIN_VERSION -ge 12; then
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile $buildRequiredPackageLists_libssldev"
+				fi
 				;;
 			mongo@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libsasl $buildRequiredPackageLists_libssl"
@@ -1113,6 +1133,12 @@ buildRequiredPackageLists() {
 			php_trie@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libstdc++"
 				;;
+			pkcs11@alpine)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent softhsm"
+				;;
+			pkcs11@debian)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libsofthsm2"
+				;;
 			pspell@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent aspell-libs $(expandASpellDictionaries)"
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile aspell-dev"
@@ -1148,6 +1174,10 @@ buildRequiredPackageLists() {
 							;;
 					esac
 					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile zstd-dev"
+					if test $PHP_MAJMIN_VERSION -ge 702; then
+						buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent lz4-libs"
+						buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile lz4-dev"
+					fi
 				fi
 				;;
 			redis@debian)
@@ -1165,12 +1195,19 @@ buildRequiredPackageLists() {
 							;;
 					esac
 				fi
+				if test $PHP_MAJMIN_VERSION -ge 702; then
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent liblz4-1"
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile liblz4-dev"
+				fi
 				;;
 			relay@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent lz4-libs zstd-libs"
 				if test $DISTRO_MAJMIN_VERSION -ge 317; then
 					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libssl1.1"
 				fi
+				;;
+			seasclick@alpine)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libstdc++"
 				;;
 			simdjson@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libstdc++"
@@ -1298,23 +1335,38 @@ buildRequiredPackageLists() {
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile git cmake gperf zlib1g-dev $buildRequiredPackageLists_libssldev"
 				;;
 			tensor@alpine)
-				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent lapack libexecinfo openblas"
-				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile lapack-dev libexecinfo-dev openblas-dev"
-				if test $DISTRO_MAJMIN_VERSION -le 310; then
-					if ! stringInList --force-overwrite "$IPE_APK_FLAGS"; then
-						IPE_APK_FLAGS="$IPE_APK_FLAGS --force-overwrite"
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent openblas"
+				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile lapack-dev openblas-dev"
+				if test $DISTRO_MAJMIN_VERSION -le 317; then
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent lapack"
+					if test $DISTRO_MAJMIN_VERSION -le 316; then
+						buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libexecinfo"
+						buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libexecinfo-dev"
+						if test $DISTRO_MAJMIN_VERSION -le 310; then
+							if ! stringInList --force-overwrite "$IPE_APK_FLAGS"; then
+								IPE_APK_FLAGS="$IPE_APK_FLAGS --force-overwrite"
+							fi
+						fi
 					fi
+				else
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent liblapack"
 				fi
 				;;
 			tensor@debian)
-				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent liblapacke libopenblas-base"
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent liblapacke"
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile liblapack-dev libopenblas-dev liblapacke-dev"
-				if test $DISTRO_VERSION_NUMBER -ge 11; then
-					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent gfortran-10"
-					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libgfortran-10-dev"
-				elif test $DISTRO_VERSION_NUMBER -ge 10; then
-					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent gfortran-8"
+				if test $DISTRO_VERSION_NUMBER -le 9; then
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent gfortran-6 libopenblas-base"
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libgfortran-6-dev"
+				elif test $DISTRO_VERSION_NUMBER -le 10; then
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent gfortran-8 libopenblas-base"
 					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libgfortran-8-dev"
+				elif test $DISTRO_VERSION_NUMBER -le 11; then
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent gfortran-10 libopenblas-base"
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libgfortran-10-dev"
+				else
+					buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent gfortran-12 libopenblas0"
+					buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libgfortran-12-dev"
 				fi
 				;;
 			tidy@alpine)
@@ -1335,6 +1387,14 @@ buildRequiredPackageLists() {
 				;;
 			uuid@debian)
 				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile uuid-dev"
+				;;
+			uv@alpine)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libuv"
+				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libuv-dev"
+				;;
+			uv@debian)
+				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent libuv1"
+				buildRequiredPackageLists_volatile="$buildRequiredPackageLists_volatile libuv1-dev"
 				;;
 			vips@alpine)
 				buildRequiredPackageLists_persistent="$buildRequiredPackageLists_persistent vips"
@@ -1615,6 +1675,9 @@ getModuleFullPath() {
 	case "$1" in
 		apcu_bc)
 			getModuleFullPath_path="$PHP_EXTDIR/apc.so"
+			;;
+		seasclick)
+			getModuleFullPath_path="$PHP_EXTDIR/SeasClick.so"
 			;;
 		*)
 			getModuleFullPath_path="$PHP_EXTDIR/$1.so"
@@ -1937,27 +2000,39 @@ isMicrosoftSqlServerODBCInstalled() {
 }
 
 # Install the Microsoft SQL Server ODBC Driver
+# see https://learn.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server
 installMicrosoftSqlServerODBC() {
 	printf 'Installing the Microsoft SQL Server ODBC Driver\n'
 	case "$DISTRO" in
 		alpine)
-			# https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server#alpine17
 			rm -rf /tmp/src/msodbcsql.apk
 			if test $PHP_MAJMIN_VERSION -le 703; then
 				curl -sSLf -o /tmp/src/msodbcsql.apk https://download.microsoft.com/download/e/4/e/e4e67866-dffd-428c-aac7-8d28ddafb39b/msodbcsql17_17.9.1.1-1_amd64.apk
 			else
-				curl -sSLf -o /tmp/src/msodbcsql.apk https://download.microsoft.com/download/b/9/f/b9f3cce4-3925-46d4-9f46-da08869c6486/msodbcsql18_18.0.1.1-1_amd64.apk
+				case $(uname -m) in
+					aarch64 | arm64 | armv8)
+						installMicrosoftSqlServerODBC_arch=arm64
+						;;
+					*)
+						installMicrosoftSqlServerODBC_arch=amd64
+						;;
+				esac
+				curl -sSLf -o /tmp/src/msodbcsql.apk https://download.microsoft.com/download/3/5/5/355d7943-a338-41a7-858d-53b259ea33f5/msodbcsql18_18.3.1.1-1_$installMicrosoftSqlServerODBC_arch.apk
 			fi
 			printf '\n' | apk add --allow-untrusted /tmp/src/msodbcsql.apk
 			rm -rf /tmp/src/msodbcsql.apk
 			;;
 		debian)
-			# https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server#debian17
+			if test $DISTRO_VERSION_NUMBER -eq 12; then
+				DISTRO_VERSION_NUMBER=11
+			fi
 			printf -- '- installing the Microsoft APT key\n'
-			if test $DISTRO_VERSION_NUMBER -ge 11; then
-				# apt-key is deprecated
+			if test $DISTRO_VERSION_NUMBER -eq 11; then
 				curl -sSLf -o /etc/apt/trusted.gpg.d/microsoft.asc https://packages.microsoft.com/keys/microsoft.asc
+			elif test $DISTRO_VERSION_NUMBER -ge 12; then
+				curl https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor --yes --output /usr/share/keyrings/microsoft-prod.gpg
 			else
+				# apt-key is deprecated
 				curl -sSLf https://packages.microsoft.com/keys/microsoft.asc | apt-key add -
 			fi
 			if ! test -f /etc/apt/sources.list.d/mssql-release.list; then
@@ -1968,11 +2043,14 @@ installMicrosoftSqlServerODBC() {
 			printf -- '- installing the APT package\n'
 			if test $PHP_MAJMIN_VERSION -le 703; then
 				DEBIAN_FRONTEND=noninteractive ACCEPT_EULA=Y apt-get install -qqy --no-install-recommends $IPE_APTGET_INSTALLOPTIONS msodbcsql17
-			elif test $DISTRO_VERSION_NUMBER -ge 9 && $DISTRO_VERSION_NUMBER -le 11; then
+			elif test $DISTRO_VERSION_NUMBER -ge 9 && test $DISTRO_VERSION_NUMBER -le 11; then
 				# On Debian 9 and 11 we have both msodbcsql17 and msodbcsql18: let's install just one
 				DEBIAN_FRONTEND=noninteractive ACCEPT_EULA=Y apt-get install -qqy --no-install-recommends $IPE_APTGET_INSTALLOPTIONS msodbcsql18
 			else
 				DEBIAN_FRONTEND=noninteractive ACCEPT_EULA=Y apt-get install -qqy --no-install-recommends $IPE_APTGET_INSTALLOPTIONS '^msodbcsql[0-9]+$'
+			fi
+			if test $DISTRO_VERSION_NUMBER -eq 11; then
+				setDistro
 			fi
 			;;
 	esac
@@ -2084,6 +2162,16 @@ installLibavif() {
 	cd -- "$installLibavif_dir/build"
 	cmake .. -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON -DAVIF_CODEC_AOM=ON -DCMAKE_INSTALL_LIBDIR:PATH=lib
 	make -j$(getProcessorCount) install
+	cd - >/dev/null
+}
+
+# Install libmpdec
+installLibMPDec() {
+	installLibMPDec_src="$(getPackageSource https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-2.5.1.tar.gz)"
+	cd -- "$installLibMPDec_src"
+	./configure --disable-cxx
+	make -j$(getProcessorCount)
+	make install
 	cd - >/dev/null
 }
 
@@ -2505,6 +2593,8 @@ installRemoteModule() {
 					installRemoteModule_version=1.9.3
 				elif test $PHP_MAJMIN_VERSION -le 505; then
 					installRemoteModule_version=1.9.4
+				elif test $PHP_MAJMIN_VERSION -le 703; then
+					installRemoteModule_version=1.11.0
 				fi
 			fi
 			;;
@@ -2610,6 +2700,27 @@ installRemoteModule() {
 			if test -z "$installRemoteModule_version"; then
 				if test $PHP_MAJMIN_VERSION -lt 700; then
 					installRemoteModule_version=0.75.0
+				else
+					case "$DISTRO" in
+						alpine)
+							if test $DISTRO_MAJMIN_VERSION -lt 317; then
+								# Alpine 3.17 is the minimum version that comes with cargo 1.64.0+
+								installRemoteModule_version=0.87.2
+							elif test $DISTRO_MAJMIN_VERSION -lt 318; then
+								# Alpine 3.18 is the minimum version that comes with cargo 1.71.0+
+								installRemoteModule_version=0.89.0
+							fi
+							;;
+						debian)
+							if test $DISTRO_MAJMIN_VERSION -lt 1200; then
+								# Debian bookworm is the minimum version that comes with cargo 1.64.0+
+								installRemoteModule_version=0.87.2
+							elif test $DISTRO_MAJMIN_VERSION -le 1300; then
+								# Newer ddtrace versions require cargo 1.71.0+, but bookworm comes with cargo 1.65.0
+								installRemoteModule_version=0.89.0
+							fi
+							;;
+					esac
 				fi
 			fi
 			;;
@@ -2617,12 +2728,14 @@ installRemoteModule() {
 			case "$DISTRO" in
 				alpine)
 					if ! test -f /usr/local/lib/libmpdec.so; then
-						installRemoteModule_src="$(getPackageSource https://www.bytereef.org/software/mpdecimal/releases/mpdecimal-2.5.1.tar.gz)"
-						cd -- "$installRemoteModule_src"
-						./configure --disable-cxx
-						make -j$(getProcessorCount)
-						make install
-						cd - >/dev/null
+						installLibMPDec
+					fi
+					;;
+				debian)
+					if test $DISTRO_MAJMIN_VERSION -ge 1200; then
+						if test -z "$(ldconfig -p | grep -E '\slibmpdec.so\s')"; then
+							installLibMPDec
+						fi
 					fi
 					;;
 			esac
@@ -2632,6 +2745,11 @@ installRemoteModule() {
 				if test $PHP_MAJMIN_VERSION -le 702; then
 					installRemoteModule_version=1.3.0
 				fi
+			fi
+			;;
+		ecma_intl)
+			if test -z "$installRemoteModule_version"; then
+				installRemoteModule_version=alpha
 			fi
 			;;
 		event)
@@ -2724,7 +2842,7 @@ installRemoteModule() {
 		geos)
 			if test -z "$installRemoteModule_path"; then
 				if test -z "$installRemoteModule_version"; then
-					installRemoteModule_version=71b5f9001512e16d3cf4657b517e8a051d6ef36f
+					installRemoteModule_version=0def35611f773c951432f1f06a155471a5cb7611
 				fi
 				installRemoteModule_src="$(getPackageSource https://git.osgeo.org/gitea/geos/php-geos/archive/$installRemoteModule_version.tar.gz)"
 				cd "$installRemoteModule_src"
@@ -2767,10 +2885,6 @@ installRemoteModule() {
 							;;
 					esac
 				fi
-			fi
-			if test -z "$installRemoteModule_version"; then
-				# See https://github.com/protocolbuffers/protobuf/issues/10619
-				installRemoteModule_version=1.55.0
 			fi
 			if test -z "$installRemoteModule_version" || test "$installRemoteModule_version" = 1.35.0; then
 				case "$DISTRO_VERSION" in
@@ -3094,9 +3208,6 @@ installRemoteModule() {
 			if test -z "$installRemoteModule_version"; then
 				if test $PHP_MAJMIN_VERSION -le 506; then
 					installRemoteModule_version=3.12.4
-				else
-					# See https://github.com/protocolbuffers/protobuf/issues/10619
-					installRemoteModule_version=3.23.2
 				fi
 			fi
 			;;
@@ -3154,19 +3265,21 @@ installRemoteModule() {
 			if test -z "$installRemoteModule_version"; then
 				if test $PHP_MAJMIN_VERSION -le 506; then
 					installRemoteModule_version=4.3.0
+				elif test $PHP_MAJMIN_VERSION -le 701; then
+					installRemoteModule_version=5.3.7
 				fi
 			else
 				installRemoteModule_version="$(resolvePeclStabilityVersion "$installRemoteModule_module" "$installRemoteModule_version")"
 			fi
 			# Enable igbinary serializer support?
 			if php --ri igbinary >/dev/null 2>/dev/null; then
-				addConfigureOption 'enable-redis-igbinary' 'yes'
+				addConfigureOption enable-redis-igbinary yes
 			else
-				addConfigureOption 'enable-redis-igbinary' 'no'
+				addConfigureOption enable-redis-igbinary no
 			fi
 			# Enable lzf compression support?
-			addConfigureOption 'enable-redis-lzf' 'yes'
-			if test -z "$installRemoteModule_version" || test $(compareVersions "$installRemoteModule_version" '5.0.0') -ge 0; then
+			addConfigureOption enable-redis-lzf yes
+			if test -z "$installRemoteModule_version" || test $(compareVersions "$installRemoteModule_version" 5.0.0) -ge 0; then
 				if ! test -e /usr/include/zstd.h || ! test -e /usr/lib/libzstd.so -o -e "/usr/lib/$TARGET_TRIPLET/libzstd.so"; then
 					installRemoteModule_zstdVersion=1.4.4
 					installRemoteModule_zstdVersionMajor=$(echo $installRemoteModule_zstdVersion | cut -d. -f1)
@@ -3182,7 +3295,19 @@ installRemoteModule() {
 					cd - >/dev/null
 				fi
 				# Enable zstd compression support?
-				addConfigureOption 'enable-redis-zstd' 'yes'
+				addConfigureOption enable-redis-zstd yes
+				if test -z "$installRemoteModule_version" || test $(compareVersions "$installRemoteModule_version" 6.0.0) -ge 0; then
+					# Enable msgpack serializer support?
+					if php --ri msgpack >/dev/null 2>/dev/null; then
+						addConfigureOption enable-redis-msgpack yes
+					else
+						addConfigureOption enable-redis-msgpack no
+					fi
+					# Enable lz4 compression?
+					addConfigureOption enable-redis-lz4 yes
+					# Use system liblz4?
+					addConfigureOption with-liblz4 yes
+				fi
 			fi
 			;;
 		relay)
@@ -3226,6 +3351,13 @@ installRemoteModule() {
 			installRemoteModule_ini_extra="$(grep -vE '^[ \t]*extension[ \t]*=' $installRemoteModule_src/relay.ini)"
 			installRemoteModule_manuallyInstalled=1
 			;;
+		seasclick)
+			if test -z "$installRemoteModule_version"; then
+				if test $PHP_MAJMIN_VERSION -le 506; then
+					installRemoteModule_version=0.1.0
+				fi
+			fi
+			;;
 		snappy)
 			if test -z "$installRemoteModule_path"; then
 				if test -z "$installRemoteModule_version"; then
@@ -3243,7 +3375,11 @@ installRemoteModule() {
 		snuffleupagus)
 			if test -z "$installRemoteModule_path"; then
 				if test -z "$installRemoteModule_version"; then
-					installRemoteModule_version=0.9.0
+					if test $PHP_MAJMIN_VERSION -le 704; then
+						installRemoteModule_version=0.9.0
+					else
+						installRemoteModule_version=0.10.0
+					fi
 				fi
 				installRemoteModule_src="$(getPackageSource https://codeload.github.com/jvoisin/snuffleupagus/tar.gz/v$installRemoteModule_version)"
 				cd "$installRemoteModule_src/src"
@@ -3287,7 +3423,7 @@ installRemoteModule() {
 		spx)
 			if test -z "$installRemoteModule_path"; then
 				if test -z "$installRemoteModule_version"; then
-					installRemoteModule_version=v0.4.13
+					installRemoteModule_version=v0.4.14
 				fi
 				if test "${installRemoteModule_version%.*}" = "$installRemoteModule_version"; then
 					installRemoteModule_displayVersion="$installRemoteModule_version"
@@ -3548,6 +3684,62 @@ installRemoteModule() {
 					installRemoteModule_version=2.2.3
 				fi
 			fi
+			case "$DISTRO" in
+				alpine)
+					if test $DISTRO_MAJMIN_VERSION -ge 315 && test $DISTRO_MAJMIN_VERSION -le 317; then
+						if test -e /usr/lib/liblapacke.so.3 && ! test -e /usr/lib/liblapacke.so; then
+							ln -s /usr/lib/liblapacke.so.3 /usr/lib/liblapacke.so
+						fi
+					fi
+					;;
+			esac
+			;;
+		tideways)
+			case "$DISTRO" in
+				alpine)
+					case $(uname -m) in
+						aarch64 | arm64 | armv8)
+							installRemoteModule_architecture=alpine-arm64
+							;;
+						*)
+							installRemoteModule_architecture=alpine
+							;;
+					esac
+					;;
+				debian)
+					case $(uname -m) in
+						aarch64 | arm64 | armv8)
+							installRemoteModule_architecture=arm64
+							;;
+						*)
+							installRemoteModule_architecture=x86_64
+							;;
+					esac
+					;;
+			esac
+			installRemoteModule_url="$(curl -sSLf -o - https://tideways.com/profiler/downloads | grep -Eo "\"[^\"]+/tideways-php-([0-9]+\.[0-9]+\.[0-9]+)-$installRemoteModule_architecture.tar.gz\"" | cut -d'"' -f2)"
+			printf 'Downloading tideways from %s\n' "$installRemoteModule_url"
+			installRemoteModule_src="$(getPackageSource $installRemoteModule_url)"
+			if test -d "$installRemoteModule_src/dist"; then
+				installRemoteModule_src="$installRemoteModule_src/dist"
+			fi
+			installRemoteModule_src="$installRemoteModule_src/tideways-php"
+			case "$DISTRO" in
+				alpine)
+					installRemoteModule_src="$installRemoteModule_src-alpine"
+					;;
+			esac
+			installRemoteModule_src="$installRemoteModule_src-$PHP_MAJDOTMIN_VERSION"
+			if test $PHP_THREADSAFE -eq 1; then
+				installRemoteModule_src="$installRemoteModule_src-zts"
+			fi
+			installRemoteModule_src="$installRemoteModule_src.so"
+			if ! test -f "$installRemoteModule_src"; then
+				echo 'tideways does not support the current environment' >&2
+				exit 1
+			fi
+			mv "$installRemoteModule_src" $(getPHPExtensionsDir)/tideways.so
+			installRemoteModule_manuallyInstalled=1
 			;;
 		uopz)
 			if test -z "$installRemoteModule_version"; then
@@ -3571,6 +3763,15 @@ installRemoteModule() {
 			if test -z "$installRemoteModule_version"; then
 				if test $PHP_MAJMIN_VERSION -le 506; then
 					installRemoteModule_version=1.0.5
+				fi
+			fi
+			;;
+		uv)
+			if test -z "$installRemoteModule_version"; then
+				if test $PHP_MAJMIN_VERSION -lt 800; then
+					installRemoteModule_version=0.2.4
+				else
+					installRemoteModule_version=beta
 				fi
 			fi
 			;;
@@ -3775,7 +3976,7 @@ moduleMayUsePecl() {
 		@composer | @fix_letsencrypt)
 			return 1
 			;;
-		blackfire | geos | ioncube_loader | snuffleupagus | sourceguardian | spx | tdlib)
+		blackfire | geos | ioncube_loader | snuffleupagus | sourceguardian | spx | tdlib | tideways)
 			return 1
 			;;
 	esac
@@ -4053,25 +4254,27 @@ cleanup() {
 			fi
 		done
 	fi
-	if test -n "$PACKAGES_VOLATILE"; then
-		printf '### REMOVING UNNEEDED PACKAGES ###\n'
-		case "$DISTRO" in
-			alpine)
+	case "$DISTRO" in
+		alpine)
+			if stringInList icu-libs "${PACKAGES_PERSISTENT_NEW:-}" && stringInList icu-data-en "${PACKAGES_PERSISTENT_NEW:-}"; then
+				apk del icu-data-en >/dev/null 2>&1 || true
+			fi
+			if test -n "$PACKAGES_VOLATILE"; then
+				printf '### REMOVING UNNEEDED PACKAGES ###\n'
 				apk del --purge $PACKAGES_VOLATILE
-				;;
-			debian)
+			fi
+			;;
+		debian)
+			if test -n "$PACKAGES_VOLATILE"; then
+				printf '### REMOVING UNNEEDED PACKAGES ###\n'
 				DEBIAN_FRONTEND=noninteractive apt-get remove --purge -y $PACKAGES_VOLATILE
-				;;
-		esac
-	fi
-	if test -n "$PACKAGES_PREVIOUS"; then
-		case "$DISTRO" in
-			debian)
+			fi
+			if test -n "$PACKAGES_PREVIOUS"; then
 				printf '### RESTORING PREVIOUSLY INSTALLED PACKAGES ###\n'
 				DEBIAN_FRONTEND=noninteractive apt-get install -qqy --no-install-recommends --no-upgrade $IPE_APTGET_INSTALLOPTIONS $PACKAGES_PREVIOUS
-				;;
-		esac
-	fi
+			fi
+			;;
+	esac
 	docker-php-source delete
 	rm -rf /tmp/src
 	rm -rf /tmp/pickle

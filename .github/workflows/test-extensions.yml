@@ -62,8 +62,6 @@ jobs:
       fail-fast: true
       matrix:
         distro:
-          - alpine3.7
-          - alpine3.8
           - alpine3.9
           - alpine3.10
           - alpine3.11
@@ -73,10 +71,12 @@ jobs:
           - alpine3.15
           - alpine3.16
           - alpine3.17
+          - alpine3.18
           - jessie
           - stretch
           - buster
           - bullseye
+          - bookworm
     name: Check on ${{ matrix.distro }}
     runs-on: ubuntu-latest
     env:
@@ -192,3 +192,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v3
       - run: ./install-php-extensions ${{ matrix.source }}
+  test_upgrading_icu_data_en:
+    name: Test that icu-data-en can be upgraded
+    needs:
+      - check_syntax_data
+      - check_syntax_shell
+      - check_syntax_php
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - run: docker run --rm --volume "$(pwd):/app" --workdir /app php:8.2-cli-alpine ./scripts/test-icu-data-en-upgradable

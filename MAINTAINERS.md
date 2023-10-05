@@ -25,6 +25,11 @@ The `decimal` PHP extension requires the `libmpdec` system library.
 It's not available on Alpine Linux, so we install it manually.
 We need to monitor new releases at https://www.bytereef.org/mpdecimal/changelog.html
 
+### ecma_intl
+
+The only available versions of this PHP extension are all alpha.
+We should switch to the stable release once it will be available.
+
 ### gearman
 
 The `gearman` PHP extension requires the `libgearman` system library.
@@ -114,6 +119,11 @@ We need to monitor new releases at https://github.com/NoiseByNorthwest/php-spx/t
 The `pdo_sqlsrv` and `sqlsrv` PHP extensions require the Microsoft ODBC Driver for SQL Server.
 On Alpine Linux there's no way to automatically install its latest version, so we install it manually.
 We need to monitor new releases at https://docs.microsoft.com/en-us/sql/connect/odbc/linux-mac/installing-the-microsoft-odbc-driver-for-sql-server#alpine18
+
+### uv
+
+The only available versions of the `uv` PHP extension are all beta.
+We should switch to the stable release once it will be available.
 
 ## xdiff
 

@@ -79,11 +79,6 @@ We need to monitor new releases at https://github.com/kjdev/php-ext-lz4/tags
 The only available versions of the `mosquitto` PHP extension are all alpha/beta.
 We should switch to the stable release once it will be available.
 
-### opentelemetry
-
-The only available versions are all beta.
-We should switch to the stable release once it will be available.
-
 ## php_trie
 
 The `php_trie` PHP extension uses the HAT-trie library.
@@ -92,6 +87,11 @@ We need to monitor new releases at https://github.com/Tessil/hat-trie/releases
 ### opencensus
 
 The only available versions of the `opencensus` PHP extension are all alpha.
+We should switch to the stable release once it will be available.
+
+### operator
+
+The only available versions of the `operator` PHP extension are all beta.
 We should switch to the stable release once it will be available.
 
 ### parle
@@ -143,9 +143,4 @@ We need to monitor new releases at http://www.xmailserver.org/xdiff-lib.html
 ### xmlrpc
 
 The only available versions of the `xmlrpc` PHP extension are all beta.
-We should switch to the stable release once it will be available.
-
-### zookeeper
-
-The latest stable release of the `zookeeper` PHP extension doesn't support PHP 7.3+, so we install the alpha version.
 We should switch to the stable release once it will be available.

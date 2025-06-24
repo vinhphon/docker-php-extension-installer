@@ -6,17 +6,21 @@ on:
   repository_dispatch:
     types:
       - test-recent-extensions
+  workflow_dispatch:
 
 jobs:
   determine_extension_list:
     name: Determine extension list
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Retrieve recently updated extensions
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Retrieve recently updated extensions
         run: ./scripts/ci-retrieve-recent-extensions >extensions-updated.txt
-      - name: Filter supported extensions
+      -
+        name: Filter supported extensions
         run: |
           UPDATED_EXTENSIONS="$(cat extensions-updated.txt)"
           if test -z "$UPDATED_EXTENSIONS"; then
@@ -25,11 +29,14 @@ jobs:
             EXTENSIONS_TO_TEST="$(./scripts/ci-filter-supported-extensions "$UPDATED_EXTENSIONS")"
           fi
           printf "$EXTENSIONS_TO_TEST" > extensions-to-test.txt
-      - name: Persist list of extensions to be tested
-        uses: actions/upload-artifact@v1
+      -
+        name: Persist list of extensions to be tested
+        uses: actions/upload-artifact@v4
         with:
           name: artifact
           path: extensions-to-test.txt
+          if-no-files-found: error
+          retention-days: 1
   test_extensions:
     runs-on: ubuntu-latest
     needs: determine_extension_list
@@ -48,6 +55,9 @@ jobs:
           - alpine3.17
           - alpine3.18
           - alpine3.19
+          - alpine3.20
+          - alpine3.21
+          - alpine3.22
           - jessie
           - stretch
           - buster
@@ -57,24 +67,33 @@ jobs:
     env:
       IPETEST_DOCKER_DISTRO: ${{ matrix.distro }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v1
-      - name: Loading list of extensions to be tested
-        uses: actions/download-artifact@v1
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Loading list of extensions to be tested
+        uses: actions/download-artifact@v4
         with:
           name: artifact
-      - name: Test extensions
+      -
+        name: Test extensions
         run: |
-          EXTENSIONS_TO_TEST="$(cat artifact/extensions-to-test.txt)"
+          EXTENSIONS_TO_TEST="$(cat extensions-to-test.txt)"
           if test -z "$EXTENSIONS_TO_TEST"; then
             echo 'No extensions to be tested'
           else
             ./scripts/ci-test-extensions from-list "$EXTENSIONS_TO_TEST"
           fi
-      - name: Notify failures
-        if: failure()
+  notify-failure:
+    name: Notify failure
+    runs-on: ubuntu-latest
+    if: failure()
+    needs: test_extensions
+    steps:
+      -
+        name: Send error notification
         uses: appleboy/telegram-action@master
         with:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           to: ${{ secrets.TELEGRAM_TO }}
-          message: Testing recent PHP packages failed on https://github.com/mlocati/docker-php-extension-installer
+          message: Testing recent PHP packages failed - See https://github.com/mlocati/docker-php-extension-installer/actions/runs/${{ github.run_id }}

@@ -4,13 +4,16 @@ on:
   - pull_request
 
 jobs:
+
   check_syntax_data:
     name: Check data syntax
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Check order supported extensions list
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Check order supported extensions list
         run: |
           sort -o data/supported-extensions.sorted data/supported-extensions
           if ! DIFF="$(diff -u data/supported-extensions data/supported-extensions.sorted)"; then
@@ -24,35 +27,47 @@ jobs:
             exit 1
           fi
           rm data/special-requirements.sorted
+
   check_syntax_shell:
     name: Check shell coding style
     runs-on: ubuntu-latest
     steps:
-      - name: Install Go
-        uses: actions/setup-go@v2
+      -
+        name: Install Go
+        uses: actions/setup-go@v5
         with:
-          go-version: "1.21.0"
-      - name: Install shfmt
-        run: GO111MODULE=on go install mvdan.cc/sh/v3/cmd/shfmt@v3.7.0
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Check coding style
+          go-version: ">=1.22.6"
+          cache: false
+      -
+        name: Install shfmt
+        run: GO111MODULE=on go install mvdan.cc/sh/v3/cmd/shfmt@v3.10.0
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Check coding style
         run: ./scripts/invoke-shfmt check
+
   check_syntax_php:
     name: Check PHP coding style
     runs-on: ubuntu-latest
     steps:
-      - name: Install PHP
+      -
+        name: Install PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: "7.4"
           tools: composer
-      - name: Checkout
-        uses: actions/checkout@v2
-      - name: Install Composer dependencies
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Install Composer dependencies
         run: composer install --no-progress --classmap-authoritative
-      - name: Check coding style
+      -
+        name: Check coding style
         run: composer run-script lint -- --dry-run --diff
+
   test_extensions:
     needs:
       - check_syntax_data
@@ -73,6 +88,9 @@ jobs:
           - alpine3.17
           - alpine3.18
           - alpine3.19
+          - alpine3.20
+          - alpine3.21
+          - alpine3.22
           - jessie
           - stretch
           - buster
@@ -83,12 +101,15 @@ jobs:
     env:
       IPETEST_DOCKER_DISTRO: ${{ matrix.distro }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      -
+        name: Checkout
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Test extensions
+      -
+        name: Test extensions
         run: ./scripts/ci-test-extensions from-commits "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}"
+
   test_restoring_packages:
     name: Test restoring packages
     needs:
@@ -97,9 +118,12 @@ jobs:
       - check_syntax_php
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - run: docker run --rm --volume "$(pwd):/app" --workdir /app php:8.2-bullseye ./scripts/test-restore-apt
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: docker run --rm --volume "$(pwd):/app" --workdir /app php:8.2-bullseye ./scripts/test-restore-apt
+
   test_custom_version:
     name: Test installing specific versions
     needs:
@@ -117,9 +141,12 @@ jobs:
           - ^2.8
           - ^2.8@stable
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - run: docker run --rm --volume "$(pwd):/app" --workdir /app php:7.4-alpine ./scripts/test-installversion "${{ matrix.xdebug_version }}"
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: docker run --rm --volume "$(pwd):/app" --workdir /app php:7.4-alpine ./scripts/test-installversion "${{ matrix.xdebug_version }}"
+
   test_composer:
     name: Test installing composer
     needs:
@@ -134,10 +161,43 @@ jobs:
           - '1'
           - '2.0.1'
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - run: |
-          docker run --rm --volume "$(pwd):/app" --workdir /app php:7.4-alpine ./scripts/test-installcomposer "${{ matrix.composer_version }}"
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: docker run --rm --volume "$(pwd):/app" --workdir /app php:7.4-alpine ./scripts/test-installcomposer "${{ matrix.composer_version }}"
+
+  test_bundled_vs_remote:
+    name: Test installing remote ${{ matrix.extension-name }} insead of bundled
+    container: php:8.4-cli-alpine
+    needs:
+      - check_syntax_data
+      - check_syntax_shell
+      - check_syntax_php
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          -
+            extension-name: oci8
+            source: php/pecl-database-oci8@7aa1061
+          -
+            extension-name: pdo_oci
+            source: php/pecl-database-pdo_oci@ffd7598
+          -
+            extension-name: zip
+            source: zip-1.22.6
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        name: Install extension
+        run: ./install-php-extensions "${{ matrix.source }}"
+      -
+        name: Inspect extension
+        run: php --ri "${{ matrix.extension-name }}"
+
   test_marking_packages:
     name: Test marking pre-installed packages
     needs:
@@ -151,9 +211,12 @@ jobs:
           - alpine
           - buster
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - run: docker run --rm --volume "$(pwd):/app" --workdir /app "php:7.4-${{ matrix.distro }}" "./scripts/ci-markused-${{ matrix.distro }}"
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: docker run --rm --volume "$(pwd):/app" --workdir /app "php:7.4-${{ matrix.distro }}" "./scripts/ci-markused-${{ matrix.distro }}"
+
   test_instantclient_basic:
     name: Test using Oracle Instant Client Basic
     needs:
@@ -163,9 +226,12 @@ jobs:
     runs-on: ubuntu-latest
     container: php:8.1-cli-alpine
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - run: IPE_INSTANTCLIENT_BASIC=1 ./install-php-extensions oci8 pdo_oci
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: IPE_INSTANTCLIENT_BASIC=1 ./install-php-extensions oci8 pdo_oci
+
   test_install_fromsource:
     name: Test installing from source
     needs:
@@ -191,9 +257,12 @@ jobs:
             container: php:7.4-cli-alpine
             source: php-memcached-dev/php-memcached@v3.2.0RC2
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - run: ./install-php-extensions ${{ matrix.source }}
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: ./install-php-extensions ${{ matrix.source }}
+
   test_upgrading_icu_data_en:
     name: Test that icu-data-en can be upgraded
     needs:
@@ -202,6 +271,8 @@ jobs:
       - check_syntax_php
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
-      - run: docker run --rm --volume "$(pwd):/app" --workdir /app php:8.2-cli-alpine ./scripts/test-icu-data-en-upgradable
+      -
+        name: Checkout
+        uses: actions/checkout@v4
+      -
+        run: docker run --rm --volume "$(pwd):/app" --workdir /app php:8.2-cli-alpine ./scripts/test-icu-data-en-upgradable
